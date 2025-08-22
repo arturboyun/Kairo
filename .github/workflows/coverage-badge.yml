@@ -1,0 +1,73 @@
+name: Coverage Badge
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: "3.13"
+        enable-cache: true
+    
+    - name: Install dependencies
+      run: uv sync --locked --all-extras --dev
+    
+    - name: Run tests with coverage
+      run: |
+        uv run pytest --cov=src/kairo --cov-report=xml tests/
+    
+    - name: Generate coverage badge
+      uses: tj-actions/coverage-comment-action@v19
+      with:
+        filename: coverage.xml
+        badge-filename: coverage.svg
+        output-path: ./coverage.svg
+        
+    - name: Create coverage badge JSON
+      run: |
+        COVERAGE=$(python -c "
+        import xml.etree.ElementTree as ET
+        tree = ET.parse('coverage.xml')
+        root = tree.getroot()
+        coverage = root.attrib['line-rate']
+        percentage = int(float(coverage) * 100)
+        print(percentage)
+        ")
+        
+        COLOR="red"
+        if [ "$COVERAGE" -ge 80 ]; then
+          COLOR="brightgreen"
+        elif [ "$COVERAGE" -ge 60 ]; then
+          COLOR="yellow"
+        elif [ "$COVERAGE" -ge 40 ]; then
+          COLOR="orange"
+        fi
+        
+        cat > coverage-badge.json << EOF
+        {
+          "schemaVersion": 1,
+          "label": "coverage",
+          "message": "${COVERAGE}%",
+          "color": "$COLOR"
+        }
+        EOF
+    
+    - name: Deploy badge to gh-pages
+      uses: peaceiris/actions-gh-pages@v4
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
+        destination_dir: badges
+        keep_files: true
+        publish_branch: gh-pages
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'

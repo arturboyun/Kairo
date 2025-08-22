@@ -1,0 +1,79 @@
+name: Lint and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    strategy:
+      matrix:
+        python-version:
+          - "3.13"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv and set the python version ${{ matrix.python-version }}
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+
+    - name: Install the project
+      run: uv sync --locked --all-extras --dev
+
+    - name: Analyzing the code with ruff
+      run: |
+        uv run ruff check src/kairo
+
+    - name: Test with pytest and coverage
+      run: |
+        uv run coverage run -m pytest --junitxml=pytest.xml tests/
+        uv run coverage xml
+        uv run coverage html
+
+    - name: Generate coverage comment
+      id: coverage
+      run: |
+        COVERAGE=$(uv run coverage report --format=total)
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE%"
+
+    - name: Archive code coverage results
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: |
+          htmlcov/
+          coverage.xml
+          pytest.xml
+
+    - name: Coverage comment
+      if: github.event_name == 'pull_request'
+      uses: orgoro/coverage@v3.2
+      with:
+        thresholdNew: 0.7
+        thresholdAll: 0.7
+        coverageFile: coverage.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate coverage summary
+      run: |
+        COVERAGE=$(uv run coverage report --format=total)
+        echo "## Coverage Report 📊" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Current coverage: **${COVERAGE}%**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        uv run coverage report >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
