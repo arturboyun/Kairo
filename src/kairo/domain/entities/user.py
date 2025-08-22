@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import UUID
 
 from uuid_extensions import uuid7
@@ -27,6 +28,9 @@ class User:
     username: str
     email: str
     password: str
+
+    created_at: datetime
+    updated_at: datetime
 
     def __post_init__(self) -> None:
         if not self.id:

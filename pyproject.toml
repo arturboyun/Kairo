@@ -5,8 +5,11 @@ description = "Just another jira alternative"
 authors = [{ name = "Artur Boiun", email = "arturboyun@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
+
 dependencies = [
+    "adaptix>=3.0.0b11",
     "fastapi[standard]>=0.116.1",
+    "sqlalchemy[asyncio]>=2.0.43",
     "uuid7>=0.1.0",
 ]
 
@@ -22,8 +25,9 @@ dev = [
 [project.scripts]
 kairo = "kairo:main"
 
-[tool.coverage.run]
-source = ["src/kairo"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -42,7 +46,3 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
