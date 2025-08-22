@@ -33,21 +33,21 @@ def read_root() -> dict[str, str]:
 
 
 @router.post("/users")
-def create_user(
+async def create_user(
     user: CreateUserDTO,
     use_case: Annotated[CreateUserUseCase, Depends(get_user_create_use_case)],
 ) -> User:
     """Create a new user."""
-    return use_case(user)
+    return await use_case(user)
 
 
 @router.get("/users/{user_id}")
-def get_user(
+async def get_user(
     user_id: UUID,
     use_case: Annotated[GetUserByIdUseCase, Depends(get_user_by_id_use_case)],
 ) -> User | None:
     """Get a user by ID."""
-    return use_case(GetUserByIdQuery(user_id=user_id))
+    return await use_case(GetUserByIdQuery(user_id=user_id))
 
 
 def get_production_app() -> FastAPI:
